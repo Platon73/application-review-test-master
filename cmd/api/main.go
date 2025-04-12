@@ -20,7 +20,7 @@ import (
 const listenAddress = ":8080"
 
 func main() {
-	connStr := "postgres://postgres:postgres@go_db:5433/postgres?sslmode=disable"
+	connStr := "postgres://postgres:postgres@localhost:5433/postgres?sslmode=disable"
 
 	// Парсинг конфигурации пула соединений
 	config, err := pgxpool.ParseConfig(connStr)
