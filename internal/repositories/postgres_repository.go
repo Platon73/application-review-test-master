@@ -11,24 +11,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type postgresRepository struct {
-	pool *pgxpool.Pool
+type PostgresRepository struct {
+	Pool *pgxpool.Pool
 }
 
-func NewPostgresRepository(connString string) (interfaces.OrdersRepository, error) {
-	pool, err := pgxpool.New(context.Background(), connString)
-	if err != nil {
-		return nil, err
-	}
-	return &postgresRepository{pool: pool}, nil
+func NewPostgresRepository(pool *pgxpool.Pool) interfaces.OrdersRepository {
+	return &PostgresRepository{Pool: pool} // <-- исправлено на Pool
 }
 
-func (p *postgresRepository) Create(order *dto.Order) error {
+func (p *PostgresRepository) Create(order *dto.Order) error {
 	ctx := context.Background()
 
 	// Проверка существования комнаты
 	var exists bool
-	err := p.pool.QueryRow(ctx,
+	err := p.Pool.QueryRow(ctx,
 		"SELECT EXISTS(SELECT 1 FROM rooms WHERE hotel_id=$1 AND room_type_id=$2)",
 		order.HotelID, order.RoomTypeID).Scan(&exists)
 
@@ -38,7 +34,7 @@ func (p *postgresRepository) Create(order *dto.Order) error {
 
 	// Проверка доступности
 	var overlappingOrders int
-	err = p.pool.QueryRow(ctx, `
+	err = p.Pool.QueryRow(ctx, `
         SELECT COUNT(*) FROM orders 
         WHERE hotel_id=$1 AND room_type_id=$2 
         AND ($3 < "to") AND ($4 > "from")`,
@@ -49,7 +45,7 @@ func (p *postgresRepository) Create(order *dto.Order) error {
 	}
 
 	// Вставка брони
-	_, err = p.pool.Exec(ctx, `
+	_, err = p.Pool.Exec(ctx, `
         INSERT INTO orders(hotel_id, room_type_id, "from", "to") 
         VALUES($1, $2, $3, $4)`,
 		order.HotelID, order.RoomTypeID, order.From, order.To)

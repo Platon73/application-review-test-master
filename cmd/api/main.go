@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
+	"example/internal/services"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
+	"time"
 
 	"example/internal/api"
-	"example/internal/dto"
+	_ "example/internal/dto"
 	"example/internal/repositories"
-	"example/internal/services"
+	_ "example/internal/services"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -16,19 +20,46 @@ import (
 const listenAddress = ":8080"
 
 func main() {
-	connStr := "postgres://user:password@localhost:5432/hotel_db?sslmode=disable"
+	connStr := "postgres://postgres:postgres@go_db:5433/postgres?sslmode=disable"
 
-	repo, err := repositories.NewPostgresRepository(connStr)
+	// Парсинг конфигурации пула соединений
+	config, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		log.Fatalf("Error parsing config: %v", err)
+	}
+
+	// Настройки пула
+	config.MaxConns = 50
+	config.MinConns = 5
+	config.MaxConnLifetime = time.Hour
+	config.HealthCheckPeriod = 30 * time.Second
+
+	// Создание пула
+	ctx := context.Background()
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		log.Fatalf("Error creating connection pool: %v", err)
+	}
+	defer pool.Close()
+
+	repo := repositories.NewPostgresRepository(pool)
 	if err != nil {
 		panic(err)
 	}
 
-	ordersService := services.NewOrdersService(
-		repositories.NewOrdersMemoryRepository([]dto.Room{
-			{"reddison", "lux"},
-			{"reddison", "premium"},
-		}),
-	)
+	// Инициализация предопределенных номеров
+	_, err = repo.(*repositories.PostgresRepository).Pool.Exec(context.Background(), `
+        INSERT INTO rooms(hotel_id, room_type_id) 
+        VALUES 
+            ('reddison', 'lux'),
+            ('reddison', 'premium') 
+        ON CONFLICT DO NOTHING`)
+	if err != nil {
+		log.Printf("Initialization error: %v", err)
+	}
+
+	ordersService := services.NewOrdersService(repo)
+
 	createOrdersHandler := api.NewCreateOrderHandler(ordersService)
 
 	router := chi.NewRouter()
