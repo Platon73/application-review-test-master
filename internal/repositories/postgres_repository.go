@@ -22,9 +22,19 @@ func NewPostgresRepository(pool *pgxpool.Pool) interfaces.OrdersRepository {
 func (p *PostgresRepository) Create(order *dto.Order) error {
 	ctx := context.Background()
 
+	// Проверка существования пользователя
+	var userExists bool
+	err := p.Pool.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)",
+		order.UserID).Scan(&userExists)
+
+	if err != nil || !userExists {
+		return errors.New("user not found")
+	}
+
 	// Проверка существования комнаты
 	var exists bool
-	err := p.Pool.QueryRow(ctx,
+	err = p.Pool.QueryRow(ctx,
 		"SELECT EXISTS(SELECT 1 FROM rooms WHERE hotel_id=$1 AND room_type_id=$2)",
 		order.HotelID, order.RoomTypeID).Scan(&exists)
 

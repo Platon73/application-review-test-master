@@ -3,11 +3,10 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"log"
-	"net/http"
-
 	"example/internal/dto"
 	"example/internal/interfaces"
+	"log"
+	"net/http"
 )
 
 type CreateOrderHandler struct {
@@ -21,6 +20,14 @@ func NewCreateOrderHandler(
 }
 
 func (h *CreateOrderHandler) Handle(w http.ResponseWriter, r *http.Request) {
+	//var req struct {
+	//	HotelID    string    `json:"hotel_id"`
+	//	RoomTypeID string    `json:"room_type_id"`
+	//	From       time.Time `json:"from"`
+	//	To         time.Time `json:"to"`
+	//	UserID     string    `json:"user_id"`
+	//}
+
 	orderRequest, err := parseRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

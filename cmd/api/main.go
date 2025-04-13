@@ -43,6 +43,16 @@ func main() {
 	defer pool.Close()
 
 	repo := repositories.NewPostgresRepository(pool)
+	// Инициализация репозиториев
+	orderRepo := repositories.NewOrderPostgresRepository(pool)
+	userRepo := repositories.NewUserPostgresRepository(pool)
+
+	// Инициализация сервиса
+	ordersService := services.NewOrdersService(
+		orderRepo,
+		userRepo, // Добавлен новый репозиторий
+		emailSender,
+	)
 	if err != nil {
 		panic(err)
 	}

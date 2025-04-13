@@ -8,4 +8,6 @@ type Order struct {
 	UserEmail  string    `json:"email"`
 	From       time.Time `json:"from"`
 	To         time.Time `json:"to"`
+	UserID     string    `json:"user_id"` // Связь через ID пользователя
+	User       *User     `json:"user"`
 }
