@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"example/internal/routes"
 	"example/internal/services"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
@@ -12,9 +13,6 @@ import (
 	_ "example/internal/dto"
 	"example/internal/repositories"
 	_ "example/internal/services"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 const listenAddress = ":8080"
@@ -42,40 +40,26 @@ func main() {
 	}
 	defer pool.Close()
 
-	repo := repositories.NewPostgresRepository(pool)
 	// Инициализация репозиториев
-	orderRepo := repositories.NewOrderPostgresRepository(pool)
-	userRepo := repositories.NewUserPostgresRepository(pool)
+	repo := repositories.NewOrderPostgresRepository(pool)
 
-	// Инициализация сервиса
-	ordersService := services.NewOrdersService(
-		orderRepo,
-		userRepo, // Добавлен новый репозиторий
-		emailSender,
-	)
+	//userRepo := repositories.NewUserPostgresRepository(pool)
+
 	if err != nil {
 		panic(err)
-	}
-
-	// Инициализация предопределенных номеров
-	_, err = repo.(*repositories.PostgresRepository).Pool.Exec(context.Background(), `
-        INSERT INTO rooms(hotel_id, room_type_id) 
-        VALUES 
-            ('reddison', 'lux'),
-            ('reddison', 'premium') 
-        ON CONFLICT DO NOTHING`)
-	if err != nil {
-		log.Printf("Initialization error: %v", err)
 	}
 
 	ordersService := services.NewOrdersService(repo)
 
 	createOrdersHandler := api.NewCreateOrderHandler(ordersService)
 
-	router := chi.NewRouter()
-	router.Use(middleware.Logger)
+	// Настройка маршрутов через отдельную функцию
+	router := routes.SetupRoutes(createOrdersHandler)
 
-	router.Post("/orders", createOrdersHandler.Handle)
+	log.Println("API server started on :8080")
+	if err := http.ListenAndServe(listenAddress, router); err != nil {
+		log.Fatalf("Error starting server: %v", err)
+	}
 
 	log.Default().Printf("api server started on %s\n", listenAddress)
 	if err := http.ListenAndServe(listenAddress, router); err != nil {

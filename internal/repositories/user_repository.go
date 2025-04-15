@@ -5,7 +5,6 @@ import (
 	"errors"
 	"example/internal/dto"
 	"example/internal/interfaces"
-	"example/internal/utils"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"

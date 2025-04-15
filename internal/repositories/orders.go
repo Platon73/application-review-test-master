@@ -19,7 +19,7 @@ type OrdersPostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
-func NewOrdersPostgresRepository(pool *pgxpool.Pool) interfaces.OrdersRepository {
+func NewOrderPostgresRepository(pool *pgxpool.Pool) interfaces.OrdersRepository {
 	return &OrdersPostgresRepository{pool: pool}
 }
 
@@ -49,7 +49,6 @@ func (r *OrdersPostgresRepository) Create(ctx context.Context, order *dto.Order)
 	return nil
 }
 
-// GetByID - получение заказа по ID
 func (r *OrdersPostgresRepository) GetByID(ctx context.Context, id string) (*dto.Order, error) {
 	query := `
 		SELECT 

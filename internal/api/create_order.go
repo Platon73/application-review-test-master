@@ -20,32 +20,24 @@ func NewCreateOrderHandler(
 }
 
 func (h *CreateOrderHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	//var req struct {
-	//	HotelID    string    `json:"hotel_id"`
-	//	RoomTypeID string    `json:"room_type_id"`
-	//	From       time.Time `json:"from"`
-	//	To         time.Time `json:"to"`
-	//	UserID     string    `json:"user_id"`
-	//}
-
 	orderRequest, err := parseRequest(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if err := validateCreateOrder(orderRequest); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	order, err := h.ordersService.Create(&orderRequest)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "validation error: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = orderCreatedResponse(w, order)
+	order, err := h.ordersService.Create(r.Context(), &orderRequest)
 	if err != nil {
+		http.Error(w, "failed to create order: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := orderCreatedResponse(w, order); err != nil {
 		log.Default().Print(err)
 	}
 }
